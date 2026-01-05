@@ -1,0 +1,15 @@
+[package]
+name = "ceno-host"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ceno_common = { path = "../common" }
+ceno_cli = { git = "https://github.com/scroll-tech/ceno.git", package = "cargo-ceno", branch = "master" }
+ceno_host = { git = "https://github.com/scroll-tech/ceno.git", branch = "master" }
+
+# ceno_gpu = { git = "https://github.com/scroll-tech/ceno-gpu.git", branch = "master" }
+
+[features]
+default = []
+# gpu = [dep:ceno_gpu]

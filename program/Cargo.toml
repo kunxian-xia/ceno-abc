@@ -1,0 +1,10 @@
+[package]
+name = "ceno-guest"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ceno_common = { path = "../common" }
+ceno_crypto = { git = "https://github.com/scroll-tech/ceno", branch = "master" }
+ceno_syscall = { git = "https://github.com/scroll-tech/ceno-patch", branch = "main" }
+ceno_rt = { git = "https://github.com/scroll-tech/ceno", branch = "master" }
