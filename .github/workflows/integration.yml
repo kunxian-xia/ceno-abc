@@ -14,10 +14,20 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cargo fmt
+      - name: Cargo fmt (host)
+        working-directory: host
         run: cargo fmt --all -- --check
 
-      - name: Cargo clippy
+      - name: Cargo fmt (guest program)
+        working-directory: program
+        run: cargo fmt --all -- --check
+
+      - name: Cargo clippy (host)
+        working-directory: host
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Cargo clippy (guest program)
+        working-directory: program
         run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Run integration script

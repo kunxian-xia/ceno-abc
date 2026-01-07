@@ -1,5 +1,3 @@
-use std::sync::LazyLock;
-use std::path::PathBuf;
 use ceno_cli::sdk::CenoSDK;
 use ceno_common::fib;
 use ceno_emul::{Platform, Program};
@@ -11,6 +9,8 @@ use mpcs::SecurityLevel::Conjecture100bits;
 use mpcs::{Basefold, BasefoldRSParams};
 use openvm_native_circuit::NativeConfig;
 use openvm_stark_sdk::config::baby_bear_poseidon2::BabyBearPoseidon2Config;
+use std::path::PathBuf;
+use std::sync::LazyLock;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, fmt};
@@ -20,7 +20,7 @@ mod utils;
 use utils::discover_workspace_root;
 
 pub const MAX_CYCLE_PER_SHARD: u64 = 1 << 29;
-type PCS = Basefold<BabyBearExt4, BasefoldRSParams>;
+type Pcs = Basefold<BabyBearExt4, BasefoldRSParams>;
 
 static WORKSPACE_ROOT: LazyLock<PathBuf> = LazyLock::new(discover_workspace_root);
 
@@ -74,7 +74,7 @@ fn main() {
     hint_in.write(&n).expect("write hint failed");
     pub_io_in.write(&pub_io).expect("write pub io failed");
 
-    let mut ceno_sdk: CenoSDK<BabyBearExt4, PCS, BabyBearPoseidon2Config, NativeConfig> =
+    let mut ceno_sdk: CenoSDK<BabyBearExt4, Pcs, BabyBearPoseidon2Config, NativeConfig> =
         CenoSDK::new_with_app_config(
             program,
             platform,

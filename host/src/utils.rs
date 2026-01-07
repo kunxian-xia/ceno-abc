@@ -1,6 +1,6 @@
+use cargo_metadata::MetadataCommand;
 use std::env;
 use std::path::{Path, PathBuf};
-use cargo_metadata::MetadataCommand;
 
 pub(crate) fn discover_workspace_root() -> PathBuf {
     if let Ok(path) = env::var("WORKSPACE_ROOT") {
