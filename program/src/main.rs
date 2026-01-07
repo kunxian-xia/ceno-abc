@@ -7,6 +7,7 @@ fn main() {
 
     let result = fib(n);
 
-    ceno_rt::commit(&n);
-    ceno_rt::commit(&result);
+    // public statement = [n, fib(n)]
+    let public_io = vec![n, result];
+    ceno_rt::commit(&public_io);
 }

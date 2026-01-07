@@ -1,53 +1,26 @@
-use std::env;
-use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
-
-use cargo_metadata::MetadataCommand;
+use std::path::PathBuf;
 use ceno_cli::sdk::CenoSDK;
 use ceno_common::fib;
 use ceno_emul::{Platform, Program};
 use ceno_host::CenoStdin;
-use ceno_zkvm::e2e::MultiProver;
+use ceno_zkvm::e2e::{MultiProver, run_e2e_verify};
 use ceno_zkvm::e2e::{Preset, setup_platform};
 use ff_ext::BabyBearExt4;
 use mpcs::SecurityLevel::Conjecture100bits;
-use mpcs::{Basefold, BasefoldRSParams, BasefoldSpec};
+use mpcs::{Basefold, BasefoldRSParams};
 use openvm_native_circuit::NativeConfig;
 use openvm_stark_sdk::config::baby_bear_poseidon2::BabyBearPoseidon2Config;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{EnvFilter, fmt};
 
-fn discover_workspace_root() -> PathBuf {
-    if let Ok(path) = env::var("WORKSPACE_ROOT") {
-        let pb = PathBuf::from(path);
-        eprintln!("WORKSPACE_ROOT (env) = {}", pb.display());
-        return pb;
-    }
+mod utils;
 
-    if let Ok(metadata) = MetadataCommand::new().no_deps().exec() {
-        let root = metadata.workspace_root.into_std_path_buf();
-        eprintln!("WORKSPACE_ROOT (cargo-metadata) = {}", root.display());
-        return root;
-    }
+use utils::discover_workspace_root;
 
-    if let Ok(exe_path) = env::current_exe() {
-        let mut dir = exe_path
-            .parent()
-            .map(Path::to_path_buf)
-            .unwrap_or_else(|| PathBuf::from("."));
-        loop {
-            if dir.join("Cargo.lock").exists() {
-                eprintln!("WORKSPACE_ROOT (inferred from exe) = {}", dir.display());
-                return dir;
-            }
-            if !dir.pop() {
-                break;
-            }
-        }
-    }
-
-    let cwd = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    eprintln!("WORKSPACE_ROOT fallback to cwd = {}", cwd.display());
-    cwd
-}
+pub const MAX_CYCLE_PER_SHARD: u64 = 1 << 29;
+type PCS = Basefold<BabyBearExt4, BasefoldRSParams>;
 
 static WORKSPACE_ROOT: LazyLock<PathBuf> = LazyLock::new(discover_workspace_root);
 
@@ -62,7 +35,9 @@ fn setup() -> (Vec<u8>, Program, Platform) {
     );
 
     println!("workspace root: {}", WORKSPACE_ROOT.display());
+
     let elf_path = WORKSPACE_ROOT
+        .join("..")
         .join("program")
         .join("target")
         .join("riscv32im-ceno-zkvm-elf")
@@ -80,23 +55,23 @@ fn setup() -> (Vec<u8>, Program, Platform) {
     (elf, program, platform)
 }
 
-pub const MAX_CYCLE_PER_SHARD: u64 = 1 << 29;
-
-type PCS = Basefold<BabyBearExt4, BasefoldRSParams>;
-
 fn main() {
+    let _ = tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(EnvFilter::from_default_env())
+        .try_init();
     let (_, program, platform) = setup();
 
     // prove that fib(n) = y
-    let n = 10u32;
+    let n = 10000u32;
     let fib_n = fib(n);
 
     let pub_io = vec![n, fib_n];
+
     let mut hint_in = CenoStdin::default();
     let mut pub_io_in = CenoStdin::default();
 
     hint_in.write(&n).expect("write hint failed");
-
     pub_io_in.write(&pub_io).expect("write pub io failed");
 
     let mut ceno_sdk: CenoSDK<BabyBearExt4, PCS, BabyBearPoseidon2Config, NativeConfig> =
@@ -106,9 +81,15 @@ fn main() {
             MultiProver::new(0, 1, (1 << 30) * 8 / 4 / 2, MAX_CYCLE_PER_SHARD),
         );
 
+    // initialize the app prover
     let max_num_variables = 25;
     let security_level = Conjecture100bits;
     ceno_sdk.init_base_prover(max_num_variables, security_level);
 
-    ceno_sdk.generate_base_proof(hint_in, pub_io_in, usize::MAX, None);
+    let max_steps = usize::MAX;
+    let app_proofs = ceno_sdk.generate_base_proof(hint_in, pub_io_in, max_steps, None);
+    assert_eq!(app_proofs.len(), 1);
+
+    let app_verifier = ceno_sdk.create_zkvm_verifier();
+    run_e2e_verify(&app_verifier, app_proofs, Some(0), max_steps);
 }

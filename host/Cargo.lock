@@ -576,6 +576,11 @@ dependencies = [
  "ceno_emul",
  "ceno_host",
  "ceno_zkvm",
+ "ff_ext",
+ "mpcs",
+ "openvm-native-circuit",
+ "openvm-stark-sdk",
+ "tracing-subscriber",
 ]
 
 [[package]]
