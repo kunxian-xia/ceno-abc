@@ -44,14 +44,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly-2025-08-18
 
       - name: Install cargo-ceno
         env:
           CARGO_NET_GIT_FETCH_WITH_CLI: true
           JEMALLOC_SYS_WITH_MALLOC_CONF: "retain:true,metadata_thp:always,thp:always,dirty_decay_ms:-1,muzzy_decay_ms:-1,abort_conf:true"
-        run: cargo install --git https://github.com/scroll-tech/ceno.git \
-          --features jemalloc --features nightly-features cargo-ceno
+        run: |
+          cargo install --git https://github.com/scroll-tech/ceno.git \
+            --features jemalloc --features nightly-features cargo-ceno
 
       - name: Run integration script
         run: RUST_LOG=info bash ./run.sh
