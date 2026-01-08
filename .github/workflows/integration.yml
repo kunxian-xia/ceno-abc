@@ -30,7 +30,8 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly-2025-08-18 
+          toolchain: nightly-2025-08-18
+          components: rust-src
 
       - name: Cargo fmt
         working-directory: program
@@ -49,6 +50,7 @@ jobs:
         uses: dtolnay/rust-toolchain@nightly
         with:
           toolchain: nightly-2025-08-18
+          components: rust-src
 
       - name: Install cargo-ceno
         env:
