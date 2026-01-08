@@ -6,6 +6,38 @@ on:
   pull_request:
 
 jobs:
+  lint_host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cargo fmt
+        working-directory: host
+        run: cargo fmt --all -- --check
+
+      - name: Cargo clippy
+        working-directory: host
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+  lint_guest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable 
+
+      - name: Cargo fmt
+        working-directory: program
+        run: cargo fmt --all -- --check
+
+      - name: Cargo clippy
+        working-directory: program
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
   integration:
     runs-on: ubuntu-latest
     steps:
@@ -14,21 +46,12 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cargo fmt (host)
-        working-directory: host
-        run: cargo fmt --all -- --check
-
-      - name: Cargo fmt (guest program)
-        working-directory: program
-        run: cargo fmt --all -- --check
-
-      - name: Cargo clippy (host)
-        working-directory: host
-        run: cargo clippy --all-targets --all-features -- -D warnings
-
-      - name: Cargo clippy (guest program)
-        working-directory: program
-        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Install cargo-ceno
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: true
+          JEMALLOC_SYS_WITH_MALLOC_CONF: "retain:true,metadata_thp:always,thp:always,dirty_decay_ms:-1,muzzy_decay_ms:-1,abort_conf:true"
+        run: cargo install --git https://github.com/scroll-tech/ceno.git \
+          --features jemalloc --features nightly-features cargo-ceno
 
       - name: Run integration script
-        run: bash ./run.sh
+        run: RUST_LOG=info bash ./run.sh
